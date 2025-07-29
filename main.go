@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -19,14 +20,14 @@ const (
 	tileSize     = 32
 )
 
-// Game állapotok
+// Game states
 const (
 	GameStateMainMenu = iota
 	GameStatePlaying
 	GameStatePaused
 )
 
-// Game fő struktúra
+// Game main structure
 type Game struct {
 	state       int
 	assets      *AssetManager
@@ -36,14 +37,18 @@ type Game struct {
 	guests      []Guest
 	ui          *UI
 	lastUpdate  time.Time
+	mouseX      int
+	mouseY      int
+	clicked     bool
 }
 
-// AssetManager asset kezelés
+// AssetManager asset management
 type AssetManager struct {
 	images map[string]*ebiten.Image
+	loaded bool
 }
 
-// GameData játék adatok
+// GameData game data
 type GameData struct {
 	Money        int
 	HotelLevel   int
@@ -54,7 +59,7 @@ type GameData struct {
 	HotelName    string
 }
 
-// Room szoba struktúra
+// Room room structure
 type Room struct {
 	ID       int
 	X, Y     int
@@ -63,17 +68,20 @@ type Room struct {
 	Type     string
 	Occupied bool
 	Price    int
+	GuestID  int
 }
 
-// Guest vendég struktúra
+// Guest guest structure
 type Guest struct {
 	ID           int
 	X, Y         float64
 	Satisfaction int
 	StayDuration int
+	RoomID       int
+	Name         string
 }
 
-// UI felhasználói felület
+// UI user interface
 type UI struct {
 	panels map[string]Panel
 }
@@ -85,14 +93,15 @@ type Panel struct {
 	Buttons             []Button
 }
 
-// Button gomb
+// Button button
 type Button struct {
 	X, Y, Width, Height int
 	Text                string
 	Action              func()
+	Enabled             bool
 }
 
-// NewGame új játék létrehozása
+// NewGame create new game
 func NewGame() *Game {
 	game := &Game{
 		state: GameStateMainMenu,
@@ -106,7 +115,7 @@ func NewGame() *Game {
 			MaxGuests:    5,
 			Satisfaction: 0,
 			Day:          1,
-			HotelName:    "Új Hotel",
+			HotelName:    "New Hotel",
 		},
 		hotelMap: make([][]int, 15),
 		rooms:    make([]Room, 0),
@@ -114,29 +123,37 @@ func NewGame() *Game {
 		ui:       &UI{panels: make(map[string]Panel)},
 	}
 
-	// Hotel térkép inicializálása
+	// Initialize hotel map
 	game.initHotelMap()
 	game.createInitialRooms()
 	game.initUI()
+	game.loadAssets()
 
 	return game
 }
 
-// initHotelMap hotel térkép inicializálása
+// loadAssets load game assets
+func (g *Game) loadAssets() {
+	// Create placeholder assets for now
+	// In a real implementation, you would load actual image files
+	g.assets.loaded = true
+}
+
+// initHotelMap initialize hotel map
 func (g *Game) initHotelMap() {
 	for y := 0; y < 15; y++ {
 		g.hotelMap[y] = make([]int, 20)
 		for x := 0; x < 20; x++ {
 			if y == 0 || y == 14 || x == 0 || x == 19 {
-				g.hotelMap[y][x] = 1 // Fal
+				g.hotelMap[y][x] = 1 // Wall
 			} else {
-				g.hotelMap[y][x] = 0 // Padló
+				g.hotelMap[y][x] = 0 // Floor
 			}
 		}
 	}
 }
 
-// createInitialRooms kezdeti szobák létrehozása
+// createInitialRooms create initial rooms
 func (g *Game) createInitialRooms() {
 	g.rooms = []Room{
 		{ID: 1, X: 2, Y: 2, Width: 4, Height: 3, Type: "single", Occupied: false, Price: 50},
@@ -145,39 +162,42 @@ func (g *Game) createInitialRooms() {
 	}
 }
 
-// initUI felhasználói felület inicializálása
+// initUI initialize user interface
 func (g *Game) initUI() {
-	// Információs panel
+	// Information panel
 	g.ui.panels["info"] = Panel{
 		X: 1000, Y: 50, Width: 250, Height: 200,
-		Title: "HOTEL INFORMÁCIÓK",
+		Title: "HOTEL INFORMATION",
 	}
 
-	// Menü panel
+	// Menu panel
 	g.ui.panels["menu"] = Panel{
 		X: 1000, Y: 270, Width: 250, Height: 400,
-		Title: "MENÜ",
+		Title: "MENU",
 		Buttons: []Button{
-			{X: 10, Y: 20, Width: 230, Height: 30, Text: "Új Szoba"},
-			{X: 10, Y: 60, Width: 230, Height: 30, Text: "Vendég Fogadás"},
-			{X: 10, Y: 100, Width: 230, Height: 30, Text: "Takarítás"},
-			{X: 10, Y: 140, Width: 230, Height: 30, Text: "Szolgáltatások"},
-			{X: 10, Y: 180, Width: 230, Height: 30, Text: "Pénzügyek"},
-			{X: 10, Y: 220, Width: 230, Height: 30, Text: "Beállítások"},
-			{X: 10, Y: 260, Width: 230, Height: 30, Text: "Mentés"},
-			{X: 10, Y: 300, Width: 230, Height: 30, Text: "Főmenü"},
+			{X: 10, Y: 20, Width: 230, Height: 30, Text: "New Room", Action: g.addNewRoom, Enabled: true},
+			{X: 10, Y: 60, Width: 230, Height: 30, Text: "Receive Guest", Action: g.addNewGuest, Enabled: true},
+			{X: 10, Y: 100, Width: 230, Height: 30, Text: "Cleaning", Action: g.cleaning, Enabled: true},
+			{X: 10, Y: 140, Width: 230, Height: 30, Text: "Services", Action: g.services, Enabled: true},
+			{X: 10, Y: 180, Width: 230, Height: 30, Text: "Finances", Action: g.finances, Enabled: true},
+			{X: 10, Y: 220, Width: 230, Height: 30, Text: "Settings", Action: g.settings, Enabled: true},
+			{X: 10, Y: 260, Width: 230, Height: 30, Text: "Save", Action: g.saveGame, Enabled: true},
+			{X: 10, Y: 300, Width: 230, Height: 30, Text: "Main Menu", Action: g.mainMenu, Enabled: true},
 		},
 	}
 }
 
-// Update játék frissítése
+// Update game update
 func (g *Game) Update() error {
 	now := time.Now()
 	if g.lastUpdate.IsZero() {
 		g.lastUpdate = now
 	}
 
-	// Input kezelés
+	// Get mouse position
+	g.mouseX, g.mouseY = ebiten.CursorPosition()
+
+	// Input handling
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		if g.state == GameStatePlaying {
 			g.state = GameStatePaused
@@ -186,13 +206,15 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Egér kattintás kezelése
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		g.handleMouseClick(x, y)
+	// Mouse click handling
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && !g.clicked {
+		g.clicked = true
+		g.handleMouseClick(g.mouseX, g.mouseY)
+	} else if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		g.clicked = false
 	}
 
-	// Vendégek frissítése
+	// Update guests
 	if g.state == GameStatePlaying {
 		g.updateGuests()
 	}
@@ -201,7 +223,7 @@ func (g *Game) Update() error {
 	return nil
 }
 
-// handleMouseClick egér kattintás kezelése
+// handleMouseClick handle mouse click
 func (g *Game) handleMouseClick(x, y int) {
 	switch g.state {
 	case GameStateMainMenu:
@@ -213,42 +235,86 @@ func (g *Game) handleMouseClick(x, y int) {
 	}
 }
 
-// handleMainMenuClick főmenü kattintás kezelése
+// handleMainMenuClick handle main menu click
 func (g *Game) handleMainMenuClick(x, y int) {
-	// Új játék gomb
+	// New Game button
 	if x >= 540 && x <= 740 && y >= 280 && y <= 330 {
 		g.state = GameStatePlaying
 	}
-	// Kilépés gomb
+	// Exit button
 	if x >= 540 && x <= 740 && y >= 500 && y <= 550 {
-		// TODO: Kilépés implementálása
+		os.Exit(0)
 	}
 }
 
-// handleGameClick játék kattintás kezelése
+// handleGameClick handle game click
 func (g *Game) handleGameClick(x, y int) {
-	// UI panel kattintások
+	// UI panel clicks
 	if x >= 1000 && x <= 1250 {
 		if y >= 270 && y <= 670 {
-			// Menü panel kattintások
+			// Menu panel clicks
 			buttonY := y - 270
-			if buttonY >= 20 && buttonY <= 50 {
-				// Új Szoba
-				g.addNewRoom()
-			} else if buttonY >= 60 && buttonY <= 90 {
-				// Vendég Fogadás
-				g.addNewGuest()
+			menuPanel := g.ui.panels["menu"]
+			for _, button := range menuPanel.Buttons {
+				if buttonY >= button.Y && buttonY <= button.Y+button.Height && button.Enabled {
+					if button.Action != nil {
+						button.Action()
+					}
+					break
+				}
 			}
+		}
+	}
+
+	// Room clicks
+	for _, room := range g.rooms {
+		roomX := room.X * tileSize
+		roomY := room.Y * tileSize
+		roomWidth := room.Width * tileSize
+		roomHeight := room.Height * tileSize
+
+		if x >= roomX && x <= roomX+roomWidth && y >= roomY && y <= roomY+roomHeight {
+			// Find room index
+			for roomIndex, r := range g.rooms {
+				if r.ID == room.ID {
+					g.handleRoomClick(roomIndex)
+					break
+				}
+			}
+			break
 		}
 	}
 }
 
-// handlePauseClick szünet kattintás kezelése
-func (g *Game) handlePauseClick(x, y int) {
-	// ESC gomb kezelése már a Update-ben van
+// handleRoomClick handle room click
+func (g *Game) handleRoomClick(roomIndex int) {
+	room := &g.rooms[roomIndex]
+	if room.Occupied {
+		// Check out guest
+		for i, guest := range g.guests {
+			if guest.RoomID == room.ID {
+				g.gameData.Money += room.Price * guest.StayDuration
+				g.gameData.GuestCount--
+				g.guests = append(g.guests[:i], g.guests[i+1:]...)
+				room.Occupied = false
+				room.GuestID = 0
+				break
+			}
+		}
+	} else {
+		// Try to assign a guest
+		if g.gameData.GuestCount < g.gameData.MaxGuests {
+			g.addNewGuest()
+		}
+	}
 }
 
-// addNewRoom új szoba hozzáadása
+// handlePauseClick handle pause click
+func (g *Game) handlePauseClick(x, y int) {
+	// ESC key handling is already in Update
+}
+
+// addNewRoom add new room
 func (g *Game) addNewRoom() {
 	if g.gameData.Money >= 1000 {
 		g.gameData.Money -= 1000
@@ -267,28 +333,88 @@ func (g *Game) addNewRoom() {
 	}
 }
 
-// addNewGuest új vendég hozzáadása
+// addNewGuest add new guest
 func (g *Game) addNewGuest() {
 	if g.gameData.GuestCount < g.gameData.MaxGuests {
-		guest := Guest{
-			ID:           len(g.guests) + 1,
-			X:            float64(rand.Intn(18)+1) * tileSize,
-			Y:            float64(rand.Intn(13)+1) * tileSize,
-			Satisfaction: 75 + rand.Intn(25),
-			StayDuration: 3 + rand.Intn(5),
+		// Find available room
+		var availableRoom *Room
+		for i := range g.rooms {
+			if !g.rooms[i].Occupied {
+				availableRoom = &g.rooms[i]
+				break
+			}
 		}
-		g.guests = append(g.guests, guest)
-		g.gameData.GuestCount++
-		g.gameData.Money += 50 // Check-in díj
+
+		if availableRoom != nil {
+			guestNames := []string{"John", "Mary", "David", "Sarah", "Michael", "Emma", "James", "Lisa", "Robert", "Anna"}
+			guest := Guest{
+				ID:           len(g.guests) + 1,
+				X:            float64(availableRoom.X*tileSize + tileSize/2),
+				Y:            float64(availableRoom.Y*tileSize + tileSize/2),
+				Satisfaction: 75 + rand.Intn(25),
+				StayDuration: 3 + rand.Intn(5),
+				RoomID:       availableRoom.ID,
+				Name:         guestNames[rand.Intn(len(guestNames))],
+			}
+			g.guests = append(g.guests, guest)
+			g.gameData.GuestCount++
+			g.gameData.Money += 50 // Check-in fee
+			availableRoom.Occupied = true
+			availableRoom.GuestID = guest.ID
+		}
 	}
 }
 
-// updateGuests vendégek frissítése
+// cleaning cleaning action
+func (g *Game) cleaning() {
+	if g.gameData.Money >= 100 {
+		g.gameData.Money -= 100
+		g.gameData.Satisfaction += 10
+		if g.gameData.Satisfaction > 100 {
+			g.gameData.Satisfaction = 100
+		}
+	}
+}
+
+// services services action
+func (g *Game) services() {
+	// Implement services menu
+}
+
+// finances finances action
+func (g *Game) finances() {
+	// Implement finances menu
+}
+
+// settings settings action
+func (g *Game) settings() {
+	// Implement settings menu
+}
+
+// saveGame save game
+func (g *Game) saveGame() {
+	// Implement save functionality
+}
+
+// mainMenu return to main menu
+func (g *Game) mainMenu() {
+	g.state = GameStateMainMenu
+}
+
+// updateGuests update guests
 func (g *Game) updateGuests() {
 	for i := range g.guests {
 		g.guests[i].StayDuration--
 		if g.guests[i].StayDuration <= 0 {
-			// Vendég távozik
+			// Guest leaves
+			guest := g.guests[i]
+			for j := range g.rooms {
+				if g.rooms[j].ID == guest.RoomID {
+					g.rooms[j].Occupied = false
+					g.rooms[j].GuestID = 0
+					break
+				}
+			}
 			g.gameData.GuestCount--
 			g.guests = append(g.guests[:i], g.guests[i+1:]...)
 			break
@@ -296,7 +422,7 @@ func (g *Game) updateGuests() {
 	}
 }
 
-// Draw rajzolás
+// Draw drawing
 func (g *Game) Draw(screen *ebiten.Image) {
 	switch g.state {
 	case GameStateMainMenu:
@@ -308,42 +434,42 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 }
 
-// drawMainMenu főmenü rajzolása
+// drawMainMenu draw main menu
 func (g *Game) drawMainMenu(screen *ebiten.Image) {
-	// Háttér
+	// Background
 	screen.Fill(color.RGBA{44, 62, 80, 255})
 
-	// Cím
+	// Title
 	title := "HOTEL MANAGER"
 	text.Draw(screen, title, basicfont.Face7x13, 640-len(title)*7/2, 150, color.RGBA{236, 240, 241, 255})
 
-	// Gombok
-	buttons := []string{"Új Játék", "Játék Betöltése", "Beállítások", "Kilépés"}
+	// Buttons
+	buttons := []string{"New Game", "Load Game", "Settings", "Exit"}
 	for i, buttonText := range buttons {
 		y := 300 + i*70
-		// Gomb háttér
+		// Button background
 		ebitenutil.DrawRect(screen, 540, float64(y), 200, 50, color.RGBA{52, 152, 219, 255})
-		// Gomb szöveg
+		// Button text
 		text.Draw(screen, buttonText, basicfont.Face7x13, 640-len(buttonText)*7/2, y+30, color.RGBA{255, 255, 255, 255})
 	}
 }
 
-// drawGame játék rajzolása
+// drawGame draw game
 func (g *Game) drawGame(screen *ebiten.Image) {
-	// Hotel térkép rajzolása
+	// Hotel map drawing
 	g.drawHotelMap(screen)
 
-	// Szobák rajzolása
+	// Rooms drawing
 	g.drawRooms(screen)
 
-	// Vendégek rajzolása
+	// Guests drawing
 	g.drawGuests(screen)
 
-	// UI rajzolása
+	// UI drawing
 	g.drawUI(screen)
 }
 
-// drawHotelMap hotel térkép rajzolása
+// drawHotelMap draw hotel map
 func (g *Game) drawHotelMap(screen *ebiten.Image) {
 	for y := 0; y < 15; y++ {
 		for x := 0; x < 20; x++ {
@@ -351,17 +477,17 @@ func (g *Game) drawHotelMap(screen *ebiten.Image) {
 			tileY := float64(y * tileSize)
 			
 			if g.hotelMap[y][x] == 1 {
-				// Fal
+				// Wall
 				ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{52, 73, 94, 255})
 			} else {
-				// Padló
+				// Floor
 				ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{236, 240, 241, 255})
 			}
 		}
 	}
 }
 
-// drawRooms szobák rajzolása
+// drawRooms draw rooms
 func (g *Game) drawRooms(screen *ebiten.Image) {
 	for _, room := range g.rooms {
 		roomX := float64(room.X * tileSize)
@@ -369,86 +495,92 @@ func (g *Game) drawRooms(screen *ebiten.Image) {
 		roomWidth := float64(room.Width * tileSize)
 		roomHeight := float64(room.Height * tileSize)
 
-		// Szoba háttér
-		roomColor := color.RGBA{46, 204, 113, 255} // Zöld (szabad)
+		// Room background
+		roomColor := color.RGBA{46, 204, 113, 255} // Green (available)
 		if room.Occupied {
-			roomColor = color.RGBA{231, 76, 60, 255} // Piros (foglalt)
+			roomColor = color.RGBA{231, 76, 60, 255} // Red (occupied)
 		}
 		ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, roomHeight, roomColor)
 
-		// Szoba keret
+		// Room border
 		ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, 2, color.RGBA{44, 62, 80, 255})
 		ebitenutil.DrawRect(screen, roomX, roomY, 2, roomHeight, color.RGBA{44, 62, 80, 255})
 		ebitenutil.DrawRect(screen, roomX+roomWidth-2, roomY, 2, roomHeight, color.RGBA{44, 62, 80, 255})
 		ebitenutil.DrawRect(screen, roomX, roomY+roomHeight-2, roomWidth, 2, color.RGBA{44, 62, 80, 255})
 
-		// Szoba szám
-		roomText := fmt.Sprintf("Szoba %d", room.ID)
+		// Room number
+		roomText := fmt.Sprintf("Room %d", room.ID)
 		text.Draw(screen, roomText, basicfont.Face7x13, int(roomX+roomWidth/2)-len(roomText)*7/2, int(roomY+roomHeight/2)+5, color.RGBA{255, 255, 255, 255})
 	}
 }
 
-// drawGuests vendégek rajzolása
+// drawGuests draw guests
 func (g *Game) drawGuests(screen *ebiten.Image) {
 	for _, guest := range g.guests {
-		// Vendég (egyszerű kör)
-		ebitenutil.DrawCircle(screen, guest.X+float64(tileSize)/2, guest.Y+float64(tileSize)/2, 8, color.RGBA{243, 156, 18, 255})
+		// Guest (simple circle)
+		ebitenutil.DrawCircle(screen, guest.X, guest.Y, 8, color.RGBA{243, 156, 18, 255})
+		// Guest name
+		text.Draw(screen, guest.Name, basicfont.Face7x13, int(guest.X)-len(guest.Name)*7/2, int(guest.Y)-10, color.RGBA{255, 255, 255, 255})
 	}
 }
 
-// drawUI felhasználói felület rajzolása
+// drawUI draw user interface
 func (g *Game) drawUI(screen *ebiten.Image) {
-	// Információs panel
+	// Information panel
 	infoPanel := g.ui.panels["info"]
 	ebitenutil.DrawRect(screen, float64(infoPanel.X), float64(infoPanel.Y), float64(infoPanel.Width), float64(infoPanel.Height), color.RGBA{52, 73, 94, 255})
 	
-	// Információk
+	// Information
 	text.Draw(screen, infoPanel.Title, basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+20, color.RGBA{236, 240, 241, 255})
-	text.Draw(screen, fmt.Sprintf("Pénz: $%d", g.gameData.Money), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+50, color.RGBA{46, 204, 113, 255})
-	text.Draw(screen, fmt.Sprintf("Vendégek: %d/%d", g.gameData.GuestCount, g.gameData.MaxGuests), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+70, color.RGBA{52, 152, 219, 255})
-	text.Draw(screen, fmt.Sprintf("Elégedettség: %d%%", g.gameData.Satisfaction), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+90, color.RGBA{243, 156, 18, 255})
-	text.Draw(screen, fmt.Sprintf("Nap: %d", g.gameData.Day), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+110, color.RGBA{155, 89, 182, 255})
+	text.Draw(screen, fmt.Sprintf("Money: $%d", g.gameData.Money), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+50, color.RGBA{46, 204, 113, 255})
+	text.Draw(screen, fmt.Sprintf("Guests: %d/%d", g.gameData.GuestCount, g.gameData.MaxGuests), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+70, color.RGBA{52, 152, 219, 255})
+	text.Draw(screen, fmt.Sprintf("Satisfaction: %d%%", g.gameData.Satisfaction), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+90, color.RGBA{243, 156, 18, 255})
+	text.Draw(screen, fmt.Sprintf("Day: %d", g.gameData.Day), basicfont.Face7x13, infoPanel.X+10, infoPanel.Y+110, color.RGBA{155, 89, 182, 255})
 
-	// Menü panel
+	// Menu panel
 	menuPanel := g.ui.panels["menu"]
 	ebitenutil.DrawRect(screen, float64(menuPanel.X), float64(menuPanel.Y), float64(menuPanel.Width), float64(menuPanel.Height), color.RGBA{52, 73, 94, 255})
 	
-	// Menü gombok
+	// Menu buttons
 	for _, button := range menuPanel.Buttons {
-		ebitenutil.DrawRect(screen, float64(menuPanel.X+button.X), float64(menuPanel.Y+button.Y), float64(button.Width), float64(button.Height), color.RGBA{52, 152, 219, 255})
+		buttonColor := color.RGBA{52, 152, 219, 255}
+		if !button.Enabled {
+			buttonColor = color.RGBA{128, 128, 128, 255}
+		}
+		ebitenutil.DrawRect(screen, float64(menuPanel.X+button.X), float64(menuPanel.Y+button.Y), float64(button.Width), float64(button.Height), buttonColor)
 		text.Draw(screen, button.Text, basicfont.Face7x13, menuPanel.X+button.X+10, menuPanel.Y+button.Y+20, color.RGBA{255, 255, 255, 255})
 	}
 }
 
-// drawPause szünet menü rajzolása
+// drawPause draw pause menu
 func (g *Game) drawPause(screen *ebiten.Image) {
-	// Átlátszó háttér
+	// Transparent background
 	ebitenutil.DrawRect(screen, 0, 0, screenWidth, screenHeight, color.RGBA{0, 0, 0, 128})
 	
-	// Szünet szöveg
-	pauseText := "JÁTÉK SZÜNETELTETVE"
+	// Pause text
+	pauseText := "GAME PAUSED"
 	text.Draw(screen, pauseText, basicfont.Face7x13, 640-len(pauseText)*7/2, 300, color.RGBA{255, 255, 255, 255})
 	
-	escText := "ESC - Folytatás"
+	escText := "ESC - Continue"
 	text.Draw(screen, escText, basicfont.Face7x13, 640-len(escText)*7/2, 350, color.RGBA{255, 255, 255, 255})
 }
 
-// Layout képernyő méretezése
+// Layout screen sizing
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return 1280, 720
 }
 
-// main fő függvény
+// main main function
 func main() {
-	// Random seed inicializálása
+	// Initialize random seed
 	rand.Seed(time.Now().UnixNano())
 
-	// Ebitengine beállítások
+	// Ebitengine settings
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Hotel Manager - Üzleti Szimulációs Játék")
+	ebiten.SetWindowTitle("Hotel Manager - Business Simulation Game")
 	ebiten.SetWindowResizable(true)
 
-	// Játék létrehozása és indítása
+	// Create and start game
 	game := NewGame()
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
