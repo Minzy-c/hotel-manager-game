@@ -139,19 +139,7 @@ func NewGame() *Game {
 func (g *Game) loadAssets() {
 	loadedCount := 0
 	
-	// Load only a few character assets for testing
-	for i := 1; i <= 5; i++ {
-		characterPath := fmt.Sprintf("assets/2_Characters/Character_Generator/0_Premade_Characters/32x32/Premade_Character_32x32_%02d.png", i)
-		if img, _, err := ebitenutil.NewImageFromFile(characterPath); err == nil {
-			g.assets.images[fmt.Sprintf("character_%d", i)] = img
-			loadedCount++
-			log.Printf("Loaded character %d successfully", i)
-		} else {
-			log.Printf("Failed to load character %d: %v", i, err)
-		}
-	}
-
-	// Load bedroom interior assets
+	// Load bedroom interior assets only
 	bedroomPath := "assets/1_Interiors/32x32/Theme_Sorter_32x32/4_Bedroom_32x32.png"
 	if img, _, err := ebitenutil.NewImageFromFile(bedroomPath); err == nil {
 		g.assets.images["bedroom"] = img
@@ -504,32 +492,23 @@ func (g *Game) drawRooms(screen *ebiten.Image) {
 		roomWidth := float64(room.Width * tileSize)
 		roomHeight := float64(room.Height * tileSize)
 
-		// Room background - use asset if available
+		// Room background - use colored rectangles for now
+		roomColor := color.RGBA{46, 204, 113, 255} // Green (available)
+		if room.Occupied {
+			roomColor = color.RGBA{231, 76, 60, 255} // Red (occupied)
+		}
+		ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, roomHeight, roomColor)
+
+		// Try to add some furniture using assets
 		if roomImg := g.assets.images["bedroom"]; roomImg != nil {
-			// Draw room tiles from spritesheet
-			for y := 0; y < room.Height; y++ {
-				for x := 0; x < room.Width; x++ {
-					tileX := roomX + float64(x*tileSize)
-					tileY := roomY + float64(y*tileSize)
-					
-					// Use different tile based on room state
-					spriteX := 0 // Default room tile
-					if room.Occupied {
-						spriteX = 32 // Occupied room tile
-					}
-					
-					op := &ebiten.DrawImageOptions{}
-					op.GeoM.Translate(tileX, tileY)
-					screen.DrawImage(roomImg.SubImage(image.Rect(spriteX, 0, spriteX+32, 32)).(*ebiten.Image), op)
-				}
-			}
-		} else {
-			// Fallback to colored rectangles
-			roomColor := color.RGBA{46, 204, 113, 255} // Green (available)
-			if room.Occupied {
-				roomColor = color.RGBA{231, 76, 60, 255} // Red (occupied)
-			}
-			ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, roomHeight, roomColor)
+			// Add a bed in the room (using a small part of the spritesheet)
+			bedX := roomX + roomWidth/2 - 16
+			bedY := roomY + roomHeight/2 - 16
+			
+			// Draw a small bed sprite from the spritesheet (assuming bed is at position 0,32)
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(bedX, bedY)
+			screen.DrawImage(roomImg.SubImage(image.Rect(0, 32, 32, 64)).(*ebiten.Image), op)
 		}
 
 		// Room border
@@ -562,15 +541,20 @@ func (g *Game) drawGuests(screen *ebiten.Image) {
 			guest.Y = float64(guestRoom.Y*tileSize + guestRoom.Height*tileSize/2)
 		}
 		
-		// Draw character sprite if available
-		if charImg := g.assets.images[fmt.Sprintf("character_%d", guest.CharacterID)]; charImg != nil {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(guest.X-16, guest.Y-16) // Center the sprite
-			screen.DrawImage(charImg, op)
-		} else {
-			// Fallback to simple circle
-			ebitenutil.DrawCircle(screen, guest.X, guest.Y, 8, color.RGBA{243, 156, 18, 255})
+		// Draw character as colored square
+		characterColors := []color.RGBA{
+			{243, 156, 18, 255},   // Orange
+			{52, 152, 219, 255},   // Blue
+			{46, 204, 113, 255},   // Green
+			{155, 89, 182, 255},   // Purple
+			{231, 76, 60, 255},    // Red
 		}
+		
+		colorIndex := (guest.CharacterID - 1) % len(characterColors)
+		characterColor := characterColors[colorIndex]
+		
+		// Draw character square
+		ebitenutil.DrawRect(screen, guest.X-8, guest.Y-8, 16, 16, characterColor)
 		
 		// Guest name
 		text.Draw(screen, guest.Name, basicfont.Face7x13, int(guest.X)-len(guest.Name)*7/2, int(guest.Y)-25, color.RGBA{255, 255, 255, 255})
