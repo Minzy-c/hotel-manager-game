@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math/rand"
@@ -79,6 +80,8 @@ type Guest struct {
 	StayDuration int
 	RoomID       int
 	Name         string
+	CharacterID  int
+	CheckInTime  time.Time
 }
 
 // UI user interface
@@ -134,8 +137,32 @@ func NewGame() *Game {
 
 // loadAssets load game assets
 func (g *Game) loadAssets() {
-	// Create placeholder assets for now
-	// In a real implementation, you would load actual image files
+	// Load interior assets
+	interiorPath := "assets/1_Interiors/32x32/Interiors_32x32.png"
+	if img, _, err := ebitenutil.NewImageFromFile(interiorPath); err == nil {
+		g.assets.images["interiors"] = img
+	} else {
+		log.Printf("Failed to load interiors: %v", err)
+	}
+
+	// Load character assets
+	for i := 1; i <= 20; i++ {
+		characterPath := fmt.Sprintf("assets/2_Characters/Character_Generator/0_Premade_Characters/32x32/Premade_Character_32x32_%02d.png", i)
+		if img, _, err := ebitenutil.NewImageFromFile(characterPath); err == nil {
+			g.assets.images[fmt.Sprintf("character_%d", i)] = img
+		} else {
+			log.Printf("Failed to load character %d: %v", i, err)
+		}
+	}
+
+	// Load UI assets
+	uiPath := "assets/4_User_Interface_Elements/UI_32x32.png"
+	if img, _, err := ebitenutil.NewImageFromFile(uiPath); err == nil {
+		g.assets.images["ui"] = img
+	} else {
+		log.Printf("Failed to load UI: %v", err)
+	}
+
 	g.assets.loaded = true
 }
 
@@ -170,19 +197,13 @@ func (g *Game) initUI() {
 		Title: "HOTEL INFORMATION",
 	}
 
-	// Menu panel
+	// Menu panel - only New Room and Receive Guest
 	g.ui.panels["menu"] = Panel{
-		X: 1000, Y: 270, Width: 250, Height: 400,
+		X: 1000, Y: 270, Width: 250, Height: 100,
 		Title: "MENU",
 		Buttons: []Button{
 			{X: 10, Y: 20, Width: 230, Height: 30, Text: "New Room", Action: g.addNewRoom, Enabled: true},
 			{X: 10, Y: 60, Width: 230, Height: 30, Text: "Receive Guest", Action: g.addNewGuest, Enabled: true},
-			{X: 10, Y: 100, Width: 230, Height: 30, Text: "Cleaning", Action: g.cleaning, Enabled: true},
-			{X: 10, Y: 140, Width: 230, Height: 30, Text: "Services", Action: g.services, Enabled: true},
-			{X: 10, Y: 180, Width: 230, Height: 30, Text: "Finances", Action: g.finances, Enabled: true},
-			{X: 10, Y: 220, Width: 230, Height: 30, Text: "Settings", Action: g.settings, Enabled: true},
-			{X: 10, Y: 260, Width: 230, Height: 30, Text: "Save", Action: g.saveGame, Enabled: true},
-			{X: 10, Y: 300, Width: 230, Height: 30, Text: "Main Menu", Action: g.mainMenu, Enabled: true},
 		},
 	}
 }
@@ -251,7 +272,7 @@ func (g *Game) handleMainMenuClick(x, y int) {
 func (g *Game) handleGameClick(x, y int) {
 	// UI panel clicks
 	if x >= 1000 && x <= 1250 {
-		if y >= 270 && y <= 670 {
+		if y >= 270 && y <= 370 {
 			// Menu panel clicks
 			buttonY := y - 270
 			menuPanel := g.ui.panels["menu"]
@@ -293,7 +314,12 @@ func (g *Game) handleRoomClick(roomIndex int) {
 		// Check out guest
 		for i, guest := range g.guests {
 			if guest.RoomID == room.ID {
-				g.gameData.Money += room.Price * guest.StayDuration
+				// Calculate money based on stay duration
+				stayDuration := int(time.Since(guest.CheckInTime).Seconds()) / 10 // 10 seconds = 1 day in game
+				if stayDuration < 1 {
+					stayDuration = 1
+				}
+				g.gameData.Money += room.Price * stayDuration
 				g.gameData.GuestCount--
 				g.guests = append(g.guests[:i], g.guests[i+1:]...)
 				room.Occupied = false
@@ -352,9 +378,11 @@ func (g *Game) addNewGuest() {
 				X:            float64(availableRoom.X*tileSize + tileSize/2),
 				Y:            float64(availableRoom.Y*tileSize + tileSize/2),
 				Satisfaction: 75 + rand.Intn(25),
-				StayDuration: 3 + rand.Intn(5),
+				StayDuration: 30 + rand.Intn(60), // 30-90 seconds
 				RoomID:       availableRoom.ID,
 				Name:         guestNames[rand.Intn(len(guestNames))],
+				CharacterID:  rand.Intn(20) + 1, // 1-20 character sprites
+				CheckInTime:  time.Now(),
 			}
 			g.guests = append(g.guests, guest)
 			g.gameData.GuestCount++
@@ -365,47 +393,13 @@ func (g *Game) addNewGuest() {
 	}
 }
 
-// cleaning cleaning action
-func (g *Game) cleaning() {
-	if g.gameData.Money >= 100 {
-		g.gameData.Money -= 100
-		g.gameData.Satisfaction += 10
-		if g.gameData.Satisfaction > 100 {
-			g.gameData.Satisfaction = 100
-		}
-	}
-}
-
-// services services action
-func (g *Game) services() {
-	// Implement services menu
-}
-
-// finances finances action
-func (g *Game) finances() {
-	// Implement finances menu
-}
-
-// settings settings action
-func (g *Game) settings() {
-	// Implement settings menu
-}
-
-// saveGame save game
-func (g *Game) saveGame() {
-	// Implement save functionality
-}
-
-// mainMenu return to main menu
-func (g *Game) mainMenu() {
-	g.state = GameStateMainMenu
-}
-
 // updateGuests update guests
 func (g *Game) updateGuests() {
+	now := time.Now()
 	for i := range g.guests {
-		g.guests[i].StayDuration--
-		if g.guests[i].StayDuration <= 0 {
+		// Check if guest should leave based on time spent
+		timeSpent := int(now.Sub(g.guests[i].CheckInTime).Seconds())
+		if timeSpent >= g.guests[i].StayDuration {
 			// Guest leaves
 			guest := g.guests[i]
 			for j := range g.rooms {
@@ -477,11 +471,27 @@ func (g *Game) drawHotelMap(screen *ebiten.Image) {
 			tileY := float64(y * tileSize)
 			
 			if g.hotelMap[y][x] == 1 {
-				// Wall
-				ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{52, 73, 94, 255})
+				// Wall - use asset if available
+				if wallImg := g.assets.images["interiors"]; wallImg != nil {
+					// Draw wall tile from spritesheet (assuming wall is at position 0,0)
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(tileX, tileY)
+					screen.DrawImage(wallImg.SubImage(image.Rect(0, 0, tileSize, tileSize)).(*ebiten.Image), op)
+				} else {
+					// Fallback to colored rectangle
+					ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{52, 73, 94, 255})
+				}
 			} else {
-				// Floor
-				ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{236, 240, 241, 255})
+				// Floor - use asset if available
+				if floorImg := g.assets.images["interiors"]; floorImg != nil {
+					// Draw floor tile from spritesheet (assuming floor is at position 32,0)
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(tileX, tileY)
+					screen.DrawImage(floorImg.SubImage(image.Rect(32, 0, 64, 32)).(*ebiten.Image), op)
+				} else {
+					// Fallback to colored rectangle
+					ebitenutil.DrawRect(screen, tileX, tileY, tileSize, tileSize, color.RGBA{236, 240, 241, 255})
+				}
 			}
 		}
 	}
@@ -495,12 +505,33 @@ func (g *Game) drawRooms(screen *ebiten.Image) {
 		roomWidth := float64(room.Width * tileSize)
 		roomHeight := float64(room.Height * tileSize)
 
-		// Room background
-		roomColor := color.RGBA{46, 204, 113, 255} // Green (available)
-		if room.Occupied {
-			roomColor = color.RGBA{231, 76, 60, 255} // Red (occupied)
+		// Room background - use asset if available
+		if roomImg := g.assets.images["interiors"]; roomImg != nil {
+			// Draw room tiles from spritesheet
+			for y := 0; y < room.Height; y++ {
+				for x := 0; x < room.Width; x++ {
+					tileX := roomX + float64(x*tileSize)
+					tileY := roomY + float64(y*tileSize)
+					
+					// Use different tile based on room state
+					spriteX := 64 // Default room tile
+					if room.Occupied {
+						spriteX = 96 // Occupied room tile
+					}
+					
+					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(tileX, tileY)
+					screen.DrawImage(roomImg.SubImage(image.Rect(spriteX, 0, spriteX+32, 32)).(*ebiten.Image), op)
+				}
+			}
+		} else {
+			// Fallback to colored rectangles
+			roomColor := color.RGBA{46, 204, 113, 255} // Green (available)
+			if room.Occupied {
+				roomColor = color.RGBA{231, 76, 60, 255} // Red (occupied)
+			}
+			ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, roomHeight, roomColor)
 		}
-		ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, roomHeight, roomColor)
 
 		// Room border
 		ebitenutil.DrawRect(screen, roomX, roomY, roomWidth, 2, color.RGBA{44, 62, 80, 255})
@@ -517,10 +548,25 @@ func (g *Game) drawRooms(screen *ebiten.Image) {
 // drawGuests draw guests
 func (g *Game) drawGuests(screen *ebiten.Image) {
 	for _, guest := range g.guests {
-		// Guest (simple circle)
-		ebitenutil.DrawCircle(screen, guest.X, guest.Y, 8, color.RGBA{243, 156, 18, 255})
+		// Draw character sprite if available
+		if charImg := g.assets.images[fmt.Sprintf("character_%d", guest.CharacterID)]; charImg != nil {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(guest.X-16, guest.Y-16) // Center the sprite
+			screen.DrawImage(charImg, op)
+		} else {
+			// Fallback to simple circle
+			ebitenutil.DrawCircle(screen, guest.X, guest.Y, 8, color.RGBA{243, 156, 18, 255})
+		}
+		
 		// Guest name
-		text.Draw(screen, guest.Name, basicfont.Face7x13, int(guest.X)-len(guest.Name)*7/2, int(guest.Y)-10, color.RGBA{255, 255, 255, 255})
+		text.Draw(screen, guest.Name, basicfont.Face7x13, int(guest.X)-len(guest.Name)*7/2, int(guest.Y)-25, color.RGBA{255, 255, 255, 255})
+		
+		// Show remaining time
+		remainingTime := guest.StayDuration - int(time.Since(guest.CheckInTime).Seconds())
+		if remainingTime > 0 {
+			timeText := fmt.Sprintf("%ds", remainingTime)
+			text.Draw(screen, timeText, basicfont.Face7x13, int(guest.X)-len(timeText)*7/2, int(guest.Y)+20, color.RGBA{255, 255, 0, 255})
+		}
 	}
 }
 
