@@ -1,0 +1,244 @@
+HOTEL MANAGER - JÁTÉK RÉSZLETES LEÍRÁSA
+============================================
+
+JÁTÉK KONCEPCIÓ
+---------------
+A Hotel Manager egy üzleti szimulációs játék, ahol a játékos saját hotel vagy panzió üzemeltetését irányítja. A játék pixel art stílusban készül, használva a rendelkezésre álló Modern Interiors asset pack-et.
+
+ALAPVETŐ JÁTÉK MECHANIKÁK
+-------------------------
+
+1. HOTEL ÉPÍTÉS ÉS BERENDEZÉS
+   - Különböző típusú szobák építése (egyágyas, kétágyas, luxus)
+   - Bútorok és berendezési tárgyak elhelyezése
+   - Fürdőszobák, konyhák, közös terek kialakítása
+   - Különböző stílusok választása (modern, japán, klasszikus)
+
+2. VENDÉGEK KEZELÉSE
+   - Vendégek fogadása és regisztrálása
+   - Szobák kiosztása vendégeknek
+   - Vendégek kéréseinek teljesítése
+   - Vendégek elégedettségének követése
+   - Check-in és check-out folyamatok
+
+3. SZOLGÁLTATÁSOK
+   - Kávézó/kantin üzemeltetése
+   - Konditerem használat
+   - Wi-Fi szolgáltatás
+   - Takarítási szolgáltatás
+   - Extra szolgáltatások (masszázs, wellness)
+
+4. GAZDASÁGI MENEZSMENT
+   - Szobaárak beállítása
+   - Költségek követése (rezsi, takarítás, karbantartás)
+   - Bevételek és nyereség számolása
+   - Befektetések tervezése
+   - Marketing kampányok
+
+5. KARAKTER RENDSZER
+   - Hotel tulajdonos karakterének testreszabása
+   - Alkalmazottak felvétele és kezelése
+   - Vendégek különböző típusai (turisták, üzletemberek, családok)
+   - Karakterek interakciója egymással
+
+TECHNIKAI RÉSZLETEK
+-------------------
+
+JÁTÉK MOTOR: Ebitengine
+GRAFIKA: Pixel art (32x32, 48x48 méretek)
+NYELV: Magyar
+PLATFORM: Desktop (Windows - elsődleges, macOS/Linux - később)
+STEAM KIADÁS: Igen, Steam platformra optimalizálva
+
+ASSET HASZNÁLAT
+---------------
+
+1. INTERIOR ASSETS (1_Interiors/)
+   - Bútorok és berendezési tárgyak
+   - Különböző szoba típusok
+   - Konyha és fürdőszoba berendezések
+   - Közös terek (recepció, étkező)
+
+2. KARAKTER ASSETS (2_Characters/)
+   - Karakter generátor használata
+   - Vendégek és alkalmazottak
+   - Különböző ruházatok és kiegészítők
+   - Karakter animációk
+
+3. ANIMÁLT OBJEKTUMOK (3_Animated_objects/)
+   - Ajtók nyitása/zárása
+   - Fürdőkád és csapok használata
+   - Kávéfőző és egyéb készülékek
+   - TV és egyéb elektronikai eszközök
+
+4. UI ELEMEK (4_User_Interface_Elements/)
+   - Menük és gombok
+   - Információs panel
+   - Értesítések és üzenetek
+   - Emotikonok és reakciók
+
+5. HAZ TERVEK (6_Home_Designs/)
+   - Különböző épület típusok
+   - Szoba elrendezések
+   - Különböző stílusok (japán, modern, klasszikus)
+
+JÁTÉK FOLYAMAT
+--------------
+
+1. JÁTÉK KEZDETE
+   - Karakter létrehozása
+   - Kezdeti tőke megadása
+   - Első hotel épület kiválasztása
+   - Alapvető berendezés vásárlása
+
+2. NAPI RUTIN
+   - Vendégek fogadása
+   - Szobák takarítása
+   - Szolgáltatások nyújtása
+   - Pénzügyek kezelése
+   - Marketing tevékenységek
+
+3. FEJLŐDÉS ÉS BŐVÍTÉS
+   - Új szobák építése
+   - Szolgáltatások bővítése
+   - Alkalmazottak felvétele
+   - Hotel hírnév építése
+
+4. KIHÍVÁSOK
+   - Verseny más hotelekkel
+   - Gazdasági válságok
+   - Vendégek különleges kérései
+   - Karbantartási problémák
+
+FELHASZNÁLÓI FELÜLET
+-------------------
+
+1. FŐ MENÜ
+   - Új játék
+   - Játék betöltése
+   - Beállítások
+   - Kilépés
+
+2. JÁTÉK KÉPERNYŐ
+   - Hotel térkép (fő nézet)
+   - Információs panel (jobb oldal)
+   - Menü sáv (felső rész)
+   - Értesítések (alsó rész)
+
+3. MENÜK ÉS PANELEK
+   - Vendég kezelés
+   - Szoba kezelés
+   - Pénzügyek
+   - Alkalmazottak
+   - Marketing
+   - Beállítások
+
+JÁTÉK CÉLOK ÉS PROGRESSZIÓ
+--------------------------
+
+1. RÖVID TÁVÚ CÉLOK
+   - Első vendég fogadása
+   - Pozitív értékelés elérése
+   - Alapvető szolgáltatások biztosítása
+
+2. KÖZÉP TÁVÚ CÉLOK
+   - Hotel teljes kihasználása
+   - Stabil bevétel elérése
+   - Alkalmazottak felvétele
+
+3. HOSSZÚ TÁVÚ CÉLOK
+   - Hotel bővítése
+   - Lánc hotelek létrehozása
+   - 5 csillagos értékelés elérése
+
+KÜLÖNLEGES JELLEMZŐK
+--------------------
+
+1. REALISZTIKUS SZIMULÁCIÓ
+   - Vendégek valóságos viselkedése
+   - Gazdasági folyamatok
+   - Időjárás hatása
+
+2. KREATÍV SZABADSÁG
+   - Korlátlan tervezési lehetőségek
+   - Különböző stílusok
+   - Egyedi karakterek
+
+3. STRATÉGIAI ELEMEK
+   - Árazási stratégia
+   - Marketing döntések
+   - Befektetési tervek
+
+4. SZOCIALIZÁCIÓ
+   - Vendégek interakciója
+   - Alkalmazottak kezelése
+   - Közösségi események
+
+FEJLESZTÉSI FÁZISOK
+-------------------
+
+1. FÁZIS 1: ALAPVETŐ RENDSZER
+   - Hotel térkép és navigáció
+   - Alapvető UI elemek
+   - Karakter rendszer
+
+2. FÁZIS 2: VENDÉG KEZELÉS
+   - Vendég fogadás
+   - Szoba kiosztás
+   - Check-in/check-out
+
+3. FÁZIS 3: GAZDASÁGI RENDSZER
+   - Pénzügyi kezelés
+   - Árazás
+   - Költségek
+
+4. FÁZIS 4: SZOLGÁLTATÁSOK
+   - Kávézó
+   - Konditerem
+   - Extra szolgáltatások
+
+5. FÁZIS 5: FEJLESZTÉSEK
+   - Hotel bővítés
+   - Marketing
+   - Verseny
+
+6. FÁZIS 6: FINOMHANGOLÁS
+   - Bug javítások
+   - Teljesítmény optimalizálás
+   - Felhasználói visszajelzések
+
+KÖVETELMÉNYEK
+-------------
+
+MINIMUM RENDSZER:
+- Windows 10 (64-bit)
+- Intel Core i3 / AMD Ryzen 3
+- 4GB RAM
+- 2GB tárhely
+- DirectX 11 támogatás
+
+AJÁNLOTT RENDSZER:
+- Windows 11 (64-bit)
+- Intel Core i5 / AMD Ryzen 5
+- 8GB RAM
+- 4GB tárhely
+- DirectX 12 támogatás
+- Steam fiók (játék vásárláshoz)
+
+JÁTÉK IDŐ
+---------
+- Egy játékmenet: 10-50 óra
+- Napi rutin: 15-30 perc
+- Teljes tartalom: 100+ óra
+
+EZ A JÁTÉK TÖKÉLETESEN ILLESZKEDIK A RENDELKEZÉSRE ÁLLÓ ASSET PACKHEZ ÉS 
+MAGYAR NYELVŰ FELHASZNÁLÓI FELÜLETTEL LESZ ELLÁTVA.
+
+STEAM KIADÁS ELŐKÉSZÍTÉSE
+-------------------------
+- Steam Workshop támogatás (egyedi tartalmak)
+- Steam Achievements (teljesítmények)
+- Steam Cloud Save (mentések szinkronizálása)
+- Steam Trading Cards (gyűjtői kártyák)
+- Steam Leaderboards (ranglisták)
+- Steam Remote Play Together (távoli együttjáték) 

@@ -1,0 +1,26 @@
+{
+  "name": "hotel-manager",
+  "version": "1.0.0",
+  "description": "Hotel Manager - Üzleti szimulációs játék Ebitengine-ben",
+  "main": "main.js",
+  "scripts": {
+    "dev": "ebiten dev",
+    "build": "ebiten build",
+    "build:windows": "ebiten build --platform windows",
+    "test": "ebiten test",
+    "start": "node build.js",
+    "build:all": "node build.js web && node build.js windows"
+  },
+  "keywords": ["game", "simulation", "hotel", "ebitengine", "pixel-art"],
+  "author": "Hotel Manager Team",
+  "license": "MIT",
+  "dependencies": {
+    "ebiten": "^2.6.0"
+  },
+  "devDependencies": {
+    "@ebiten/cli": "^2.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

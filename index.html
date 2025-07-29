@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Manager - Üzleti Szimulációs Játék</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #ecf0f1;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.3);
+            background: #2c3e50;
+        }
+
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #loadingScreen.hidden {
+            display: none;
+        }
+
+        .loading-title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            color: #ecf0f1;
+        }
+
+        .loading-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #bdc3c7;
+        }
+
+        .loading-bar {
+            width: 400px;
+            height: 20px;
+            background: #34495e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            color: #95a5a6;
+        }
+
+        #errorScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .error-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .error-message {
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            color: #ecf0f1;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .error-button {
+            padding: 12px 24px;
+            background: #ffffff;
+            color: #e74c3c;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .error-button:hover {
+            background: #f8f9fa;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(52, 73, 94, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .control-item {
+            margin-bottom: 5px;
+        }
+
+        .control-key {
+            background: #3498db;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .loading-title {
+                font-size: 2rem;
+            }
+            
+            .loading-bar {
+                width: 300px;
+            }
+            
+            #controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
+        
+        <div id="loadingScreen">
+            <div class="loading-title">🏨 Hotel Manager</div>
+            <div class="loading-subtitle">Üzleti Szimulációs Játék</div>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loadingProgress"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Asset betöltés...</div>
+        </div>
+        
+        <div id="errorScreen">
+            <div class="error-title">❌ Hiba történt</div>
+            <div class="error-message" id="errorMessage">
+                Sajnos hiba történt a játék betöltése során. Kérjük, próbáld újra.
+            </div>
+            <button class="error-button" onclick="location.reload()">Újrapróbálkozás</button>
+        </div>
+        
+        <div id="controls">
+            <div class="control-item">
+                <span class="control-key">Egér</span> - Navigáció és interakció
+            </div>
+            <div class="control-item">
+                <span class="control-key">ESC</span> - Szünet menü
+            </div>
+            <div class="control-item">
+                <span class="control-key">F11</span> - Teljes képernyő
+            </div>
+            <div class="control-item">
+                <span class="control-key">Ctrl+S</span> - Gyors mentés
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { HotelManager } from './main.js';
+        
+        // Loading screen kezelés
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const loadingText = document.getElementById('loadingText');
+        const errorScreen = document.getElementById('errorScreen');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Loading progress frissítése
+        function updateLoadingProgress(progress, text) {
+            loadingProgress.style.width = `${progress}%`;
+            loadingText.textContent = text;
+        }
+        
+        // Error megjelenítése
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorScreen.style.display = 'flex';
+            loadingScreen.classList.add('hidden');
+        }
+        
+        // Játék indítása
+        async function startGame() {
+            try {
+                updateLoadingProgress(10, 'Játék motor inicializálása...');
+                
+                // Játék létrehozása
+                const game = new HotelManager();
+                
+                updateLoadingProgress(30, 'Asset betöltés...');
+                
+                // Asset betöltés figyelése
+                const checkAssetProgress = setInterval(() => {
+                    if (game.assetManager) {
+                        const progress = game.assetManager.getLoadingProgress();
+                        updateLoadingProgress(30 + progress * 0.6, `Asset betöltés... ${Math.round(progress)}%`);
+                        
+                        if (progress >= 100) {
+                            clearInterval(checkAssetProgress);
+                            updateLoadingProgress(90, 'Játék indítása...');
+                            
+                            setTimeout(() => {
+                                loadingScreen.classList.add('hidden');
+                                game.run();
+                            }, 500);
+                        }
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('Hiba a játék indítása során:', error);
+                showError(`Hiba a játék indítása során: ${error.message}`);
+            }
+        }
+        
+        // Játék indítása amikor az oldal betöltődött
+        window.addEventListener('load', startGame);
+        
+        // Teljes képernyő kezelés
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'F11') {
+                event.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+        
+        // Resize kezelés
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const container = document.getElementById('gameContainer');
+            
+            // Canvas méretezése a konténerhez
+            const containerRect = container.getBoundingClientRect();
+            const scale = Math.min(
+                containerRect.width / 1280,
+                containerRect.height / 720
+            );
+            
+            canvas.style.width = `${1280 * scale}px`;
+            canvas.style.height = `${720 * scale}px`;
+        });
+        
+        // Kezdeti resize
+        window.dispatchEvent(new Event('resize'));
+    </script>
+</body>
+</html> 
