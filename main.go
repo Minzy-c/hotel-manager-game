@@ -137,15 +137,7 @@ func NewGame() *Game {
 
 // loadAssets load game assets
 func (g *Game) loadAssets() {
-	// Load interior assets
-	interiorPath := "assets/1_Interiors/32x32/Interiors_32x32.png"
-	if img, _, err := ebitenutil.NewImageFromFile(interiorPath); err == nil {
-		g.assets.images["interiors"] = img
-	} else {
-		log.Printf("Failed to load interiors: %v", err)
-	}
-
-	// Load character assets
+	// Load character assets (smaller individual files)
 	for i := 1; i <= 20; i++ {
 		characterPath := fmt.Sprintf("assets/2_Characters/Character_Generator/0_Premade_Characters/32x32/Premade_Character_32x32_%02d.png", i)
 		if img, _, err := ebitenutil.NewImageFromFile(characterPath); err == nil {
@@ -155,12 +147,20 @@ func (g *Game) loadAssets() {
 		}
 	}
 
-	// Load UI assets
+	// Load UI assets (smaller file)
 	uiPath := "assets/4_User_Interface_Elements/UI_32x32.png"
 	if img, _, err := ebitenutil.NewImageFromFile(uiPath); err == nil {
 		g.assets.images["ui"] = img
 	} else {
 		log.Printf("Failed to load UI: %v", err)
+	}
+
+	// Load generic interior assets (smaller file)
+	genericPath := "assets/1_Interiors/32x32/Theme_Sorter_32x32/1_Generic_32x32.png"
+	if img, _, err := ebitenutil.NewImageFromFile(genericPath); err == nil {
+		g.assets.images["generic"] = img
+	} else {
+		log.Printf("Failed to load generic interiors: %v", err)
 	}
 
 	g.assets.loaded = true
@@ -472,7 +472,7 @@ func (g *Game) drawHotelMap(screen *ebiten.Image) {
 			
 			if g.hotelMap[y][x] == 1 {
 				// Wall - use asset if available
-				if wallImg := g.assets.images["interiors"]; wallImg != nil {
+				if wallImg := g.assets.images["generic"]; wallImg != nil {
 					// Draw wall tile from spritesheet (assuming wall is at position 0,0)
 					op := &ebiten.DrawImageOptions{}
 					op.GeoM.Translate(tileX, tileY)
@@ -483,7 +483,7 @@ func (g *Game) drawHotelMap(screen *ebiten.Image) {
 				}
 			} else {
 				// Floor - use asset if available
-				if floorImg := g.assets.images["interiors"]; floorImg != nil {
+				if floorImg := g.assets.images["generic"]; floorImg != nil {
 					// Draw floor tile from spritesheet (assuming floor is at position 32,0)
 					op := &ebiten.DrawImageOptions{}
 					op.GeoM.Translate(tileX, tileY)
@@ -506,7 +506,7 @@ func (g *Game) drawRooms(screen *ebiten.Image) {
 		roomHeight := float64(room.Height * tileSize)
 
 		// Room background - use asset if available
-		if roomImg := g.assets.images["interiors"]; roomImg != nil {
+		if roomImg := g.assets.images["generic"]; roomImg != nil {
 			// Draw room tiles from spritesheet
 			for y := 0; y < room.Height; y++ {
 				for x := 0; x < room.Width; x++ {
