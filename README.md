@@ -15,7 +15,8 @@ A Hotel Manager egy üzleti szimulációs játék, ahol a játékos saját hotel
 
 ## 🛠️ Technikai Részletek
 
-- **Játék Motor**: Ebitengine
+- **Játék Motor**: Ebitengine v2.6.0
+- **Programozási Nyelv**: Go 1.21+
 - **Grafika**: Pixel art (32x32, 48x48 méretek)
 - **Nyelv**: Magyar
 - **Platform**: Windows (elsődleges), macOS/Linux (később)
@@ -25,35 +26,36 @@ A Hotel Manager egy üzleti szimulációs játék, ahol a játékos saját hotel
 
 ### Előfeltételek
 
-- Node.js 18.0.0 vagy újabb
-- Modern webböngésző (fejlesztéshez)
+- Go 1.21.0 vagy újabb
+- Ebitengine v2.6.0
+- Git
 
 ### Telepítési lépések
 
 1. **Projekt klónozása**
    ```bash
-   git clone [repository-url]
-   cd hotel-manager
+   git clone https://github.com/Minzy-c/hotel-manager-game.git
+   cd hotel-manager-game
    ```
 
 2. **Függőségek telepítése**
    ```bash
-   npm install
+   go mod tidy
    ```
 
-3. **Fejlesztői szerver indítása**
+3. **Fejlesztői mód indítása**
    ```bash
-   npm run dev
+   go run main.go
    ```
 
 4. **Játék buildelése**
    ```bash
-   npm run build
+   go build -o hotel-manager.exe main.go
    ```
 
-5. **Windows build**
+5. **Windows GUI build**
    ```bash
-   npm run build:windows
+   go build -ldflags="-H windowsgui" -o hotel-manager.exe main.go
    ```
 
 ## 🎯 Játék Mechanikák
@@ -81,6 +83,15 @@ A Hotel Manager egy üzleti szimulációs játék, ahol a játékos saját hotel
 - Extra szolgáltatások
 - Marketing kampányok
 
+### Jelenlegi Implementáció
+- ✅ **Alapvető UI**: Főmenü, játék képernyő, szünet menü
+- ✅ **Hotel Térkép**: 20x15 méretű térkép falakkal és padlóval
+- ✅ **Szoba Rendszer**: Szobák létrehozása és megjelenítése
+- ✅ **Vendég Rendszer**: Vendégek hozzáadása és kezelése
+- ✅ **Gazdasági Rendszer**: Pénz kezelés, szoba árak
+- ✅ **Input Kezelés**: Egér kattintás, billentyűzet (ESC)
+- ✅ **Játék Állapotok**: Főmenü, játék, szünet
+
 ## 📁 Projekt Struktúra
 
 ```
@@ -91,13 +102,12 @@ hotel-manager/
 │   ├── 3_Animated_objects/ # Animált objektumok
 │   ├── 4_User_Interface_Elements/ # UI elemek
 │   └── 6_Home_Designs/    # Ház tervek
-├── src/                   # Forráskód
-│   ├── AssetManager.js    # Asset kezelő
-│   ├── GameData.js        # Játék adatok
-│   └── ...               # További modulok
-├── main.js               # Fő játék fájl
-├── package.json          # Projekt konfiguráció
-└── README.md            # Dokumentáció
+├── main.go                # Fő játék fájl (Go)
+├── go.mod                 # Go modul fájl
+├── package.json           # Projekt metaadatok
+├── README.md              # Dokumentáció
+├── LICENSE                # Licenc
+└── .gitignore            # Git ignore fájl
 ```
 
 ## 🎮 Irányítás
